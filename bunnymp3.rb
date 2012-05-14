@@ -14,7 +14,6 @@ SSL  = false
 
 # complusory 
 EXCH = "mp3"
-QUE  = "mp3"
 
 ###NOTE###
 #@queue.message count gives up somethings, guessing bunny has bug.
