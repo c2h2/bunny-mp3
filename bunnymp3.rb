@@ -31,11 +31,9 @@ class Bunnymp3
     #create an exchange with name and type
     @exch = @bunny.exchange(EXCH, :type => :fanout)
     #bind a queue to the exchange
-    @queue = @bunny.queue(QUE)
-    @queue.bind(@exch)
-
     @hwaddr = ((`ifconfig | grep "HWaddr" | rev |  sed 's/^[ ]*//' | cut -d " " -f 1 | rev`.strip).split(":") * "")
-    
+    @queue = @bunny.queue(@hwaddr)
+    @queue.bind(@exch)
 
   end
   
