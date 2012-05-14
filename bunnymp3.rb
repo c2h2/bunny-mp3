@@ -17,7 +17,7 @@ EXCH = "mp3"
 QUE  = "mp3"
 
 ###NOTE###
-
+#@queue.message count gives up somethings, guessing bunny has bug.
 
 
 
@@ -102,7 +102,7 @@ class Util
     str = Time.now.to_s + "|" + (@@counter+=1).to_s+ "|" + str
     if error_level > 1
       STDOUT.puts str
-      #@logger.add str
+      #@logger.warn str
     else
       @@logger.info str
     end
