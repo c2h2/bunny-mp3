@@ -19,8 +19,6 @@ EXCH = "mp3"
 #@queue.message count gives up somethings, guessing bunny has bug.
 
 
-
-
 class Bunnymp3
   def initialize
     #start bunny
@@ -29,11 +27,12 @@ class Bunnymp3
 
     #create an exchange with name and type
     @exch = @bunny.exchange(EXCH, :type => :fanout)
-    #bind a queue to the exchange
+
+    #get a network id by using ifconfig, under ubuntu.
     @hwaddr = ((`ifconfig | grep "HWaddr" | rev |  sed 's/^[ ]*//' | cut -d " " -f 1 | rev`.strip).split(":") * "")
+    #bind a queue to the exchange
     @queue = @bunny.queue(@hwaddr)
     @queue.bind(@exch)
-
   end
   
   #called by publisher
@@ -41,27 +40,38 @@ class Bunnymp3
     @exch.publish(get_file(fn))
   end
 
-  def receive_file 
-
-
-  end
-
   #called upon playback daemons (as the consumers)
   def playback 
     @queue.subscribe(:consumer_tag => @hwaddr) do |msg|
       count = @queue.default_consumer.message_count
       content = msg[:payload]
-      filename = save_file content
-      play_file filename, count
+      puts content.class
+      #if content is a integer, then it is a volume change message.
+      if content.is_a?(Fixnum) or content.length <=3
+        set_system_volume content
+      else
+        filename = save_file content
+        play_file filename, count
+      end
     end
   end
 
-  def change_volume
+  def set_system_volume vol #0-100
+    vol = vol.to_i
+    @master_vol ||= 100
+    @pcm_vol ||=100
+    @pcm_vol = vol
 
+    @pcm_vol = 100 if @pcm_vol > 100
+    @pcm_vol = 0 if @pcm_vol == 0
+
+    system("amixer -c 0 sset Master #{@master_vol}%")
+    system("amixer -c 0 sset PCM #{@pcm_vol}%")
   end
 
-  def get_volume
-
+  #called by external, vol is a Int
+  def set_bunny_volume vol
+    @exch.publish(vol.to_i) 
   end
 
   def get_file fn
@@ -69,24 +79,21 @@ class Bunnymp3
   end
 
   def save_file content, filename = nil
+    @filename ||= "/tmp/"+ Time.now.to_i.to_s + ".mp3"
     if filename.nil? 
-      filename = "/tmp/"+ Time.now.to_i.to_s + ".mp3"
+      filename = @filename #is default filename.
     end
+
     f=File.open(filename, "w"){|f| f.write content}
     filename
   end
 
   def play_file filename, items = "Unkonwn"
-    Util.log "Playing back new item #{filename}, #{items} items played already"
+    Bunnymp3.log "Playing back new item #{filename}, #{items} items played already."
     `mpg123 -q #{filename}`
   end
 
 
-end
-
-
-
-class Util
   def self.hexmd5 str
     Disgest::MD5::hexdigest str
   end
@@ -103,30 +110,5 @@ class Util
     else
       @@logger.info str
     end
-  end
-end
-
-###AUX classes ###
-class Stopwatch
-  def initialize
-    start
-  end
-
-  def start
-    @t0 = Time.now
-  end
-
-  def end
-    @t1 = Time.now
-    @t1 - @t0
-  end
-
-  def self.ts
-    Time.now.to_i.to_s
-  end
-
-  def self.ts2
-    t=Time.new.to_i.to_s
-    [t.slice(0..6), t.slice(7..-1)]
   end
 end

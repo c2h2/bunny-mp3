@@ -17,7 +17,9 @@ on the emitter side
 ===================
 
 + configure rabbitmq-server address, and run emit_mp3.rb
-+ run by: ruby emit_mp3.rb mp3file.mp3
++ run: ruby emit_mp3.rb mp3file.mp3
++ change clients volume to 50%:
++ run: ruby change_volume.rb 50
 
 
 on the receive side
